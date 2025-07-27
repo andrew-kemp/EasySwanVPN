@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>MFA Setup</title>
+</head>
+<body>
+    <h2>Set up Multi-Factor Authentication</h2>
+    {% if error %}
+        <p style="color:red">{{ error }}</p>
+    {% endif %}
+    <p>Scan this QR code with your authenticator app (e.g., Google Authenticator):</p>
+    <img src="data:image/png;base64,{{ qr_b64 }}" alt="QR Code"><br>
+    <p>Or enter this secret manually: <b>{{ secret }}</b></p>
+    <form method="POST">
+        <label>Enter OTP from app: <input name="mfa_code" type="text"></label><br>
+        <button type="submit">Verify</button>
+    </form>
+</body>
+</html>
