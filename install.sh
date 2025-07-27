@@ -47,6 +47,7 @@ qrcode
 requests
 psutil
 six
+Pillow
 EOF
 
 echo "[+] Installing Python dependencies from requirements.txt..."
