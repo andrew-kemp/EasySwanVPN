@@ -12,7 +12,7 @@ SSL_KEY="/etc/ssl/private/portal.easyswan.net.key"
 NGINX_CONF="/etc/nginx/sites-available/portal.easyswan.net"
 NGINX_CONF_LINK="/etc/nginx/sites-enabled/portal.easyswan.net"
 
-PYTHON_VERSION="python3.11"
+PYTHON_VERSION="python3"  # Use system default, e.g., Python 3.12 on Ubuntu 24.04+
 
 echo "[+] Checking for existing EasySwanVPN installation..."
 
@@ -32,9 +32,9 @@ fi
 
 echo "[+] Installing required system packages..."
 sudo apt-get update
-sudo apt-get install -y $PYTHON_VERSION ${PYTHON_VERSION}-venv ${PYTHON_VERSION}-distutils python3-pip strongswan easy-rsa openssl libpam0g-dev nginx
+sudo apt-get install -y $PYTHON_VERSION $PYTHON_VERSION-venv python3-pip strongswan easy-rsa openssl libpam0g-dev nginx
 
-echo "[+] Setting up Python $PYTHON_VERSION virtual environment..."
+echo "[+] Setting up Python virtual environment..."
 cd "$BASE_DIR"
 $PYTHON_VERSION -m venv venv
 source venv/bin/activate
@@ -47,13 +47,15 @@ fi
 if ! grep -q "^flask-login" requirements.txt; then
   echo "flask-login" >> requirements.txt
 fi
-if ! grep -q "^flask-pam" requirements.txt; then
-  echo "flask-pam" >> requirements.txt
-fi
+# Remove any old flask-pam (PyPI version) lines from requirements.txt
+sed -i '/^flask-pam/d' requirements.txt
 
-echo "[+] Installing Python dependencies..."
+echo "[+] Installing Python dependencies from requirements.txt..."
 pip install --upgrade pip
 pip install -r requirements.txt
+
+echo "[+] Installing flask-pam from GitHub (mk-fg fork, Python 3.12+ compatible)..."
+pip install git+https://github.com/mk-fg/flask-pam.git
 
 echo "[+] Python environment ready and dependencies installed."
 
