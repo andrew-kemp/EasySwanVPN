@@ -212,7 +212,7 @@ def mfa():
 
     return render_template("mfa.html", error=error)
 
-@app.route("/logout")
+@app.route("/logout", methods=["GET", "POST"])
 def logout():
     session.clear()
     return redirect(url_for("login"))
