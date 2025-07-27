@@ -46,6 +46,7 @@ pyotp
 qrcode
 requests
 psutil
+six
 EOF
 
 echo "[+] Installing Python dependencies from requirements.txt..."
