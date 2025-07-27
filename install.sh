@@ -4,6 +4,7 @@ set -e
 
 # 1. Create project folder structure
 BASE_DIR="$HOME/easyswanvpn"
+mkdir -p "$BASE_DIR"
 mkdir -p "$BASE_DIR/app/templates"
 mkdir -p "$BASE_DIR/static"
 
@@ -16,6 +17,7 @@ touch "$BASE_DIR/run.py"
 touch "$BASE_DIR/README.md"
 
 echo "[+] EasySwanVPN folder structure created at $BASE_DIR"
+
 
 # 2. Install system packages (Python, strongSwan, EasyRSA, OpenSSL)
 echo "[+] Installing required system packages..."
