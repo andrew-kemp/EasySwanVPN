@@ -166,7 +166,7 @@ def mfa_setup():
 
     secret = user["totp_secret"]
     provisioning_uri = pyotp.totp.TOTP(secret).provisioning_uri(
-        name=f"{SYSTEM_USERNAME}@travelnetvpn", issuer_name="TravelNetVPN"
+        name=f"{SYSTEM_USERNAME}@easyswanvpn", issuer_name="EasySwanVPN"
     )
 
     img = qrcode.make(provisioning_uri)
