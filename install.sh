@@ -12,6 +12,8 @@ SSL_KEY="/etc/ssl/private/portal.easyswan.net.key"
 NGINX_CONF="/etc/nginx/sites-available/portal.easyswan.net"
 NGINX_CONF_LINK="/etc/nginx/sites-enabled/portal.easyswan.net"
 
+PYTHON_VERSION="python3.11"
+
 echo "[+] Checking for existing EasySwanVPN installation..."
 
 if [ -d "$BASE_DIR/.git" ]; then
@@ -30,11 +32,11 @@ fi
 
 echo "[+] Installing required system packages..."
 sudo apt-get update
-sudo apt-get install -y python3 python3-venv python3-pip strongswan easy-rsa openssl libpam0g-dev nginx
+sudo apt-get install -y $PYTHON_VERSION ${PYTHON_VERSION}-venv ${PYTHON_VERSION}-distutils python3-pip strongswan easy-rsa openssl libpam0g-dev nginx
 
-echo "[+] Setting up Python virtual environment..."
+echo "[+] Setting up Python $PYTHON_VERSION virtual environment..."
 cd "$BASE_DIR"
-python3 -m venv venv
+$PYTHON_VERSION -m venv venv
 source venv/bin/activate
 
 # Ensure requirements.txt exists and required packages are present
