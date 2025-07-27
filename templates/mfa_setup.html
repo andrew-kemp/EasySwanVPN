@@ -10,10 +10,10 @@
         <h2>MFA Setup</h2>
         <div class="form-card">
             <p>Scan this QR code with your authenticator app:</p>
-            <img src="data:image/png;base64,{{ qr_code }}" alt="MFA QR Code">
+            <img src="data:image/png;base64,{{ qr_b64 }}" alt="MFA QR Code">
             <form method="POST">
-                <label for="token">Enter code from app:</label>
-                <input id="token" name="token" type="text" required>
+                <label for="mfa_code">Enter code from app:</label>
+                <input id="mfa_code" name="mfa_code" type="text" required>
                 <button type="submit">Verify</button>
             </form>
         </div>
