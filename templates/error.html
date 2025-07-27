@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Error</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="center-container">
+        <h2>Error</h2>
+        <div class="form-card">
+            <p style="color:red; text-align:center;">{{ error_message }}</p>
+            <p style="text-align:center;"><a href="{{ url_for('login') }}">Back to Login</a></p>
+        </div>
+    </div>
+</body>
+</html>
