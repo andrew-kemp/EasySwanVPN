@@ -10,8 +10,8 @@
         <h2>Two-Factor Authentication</h2>
         <div class="form-card">
             <form method="POST">
-                <label for="token">Enter code from your authenticator app:</label>
-                <input id="token" name="token" type="text" required>
+                <label for="mfa_code">Enter code from your authenticator app:</label>
+                <input id="mfa_code" name="mfa_code" type="text" required>
                 <button type="submit">Verify</button>
             </form>
             <p style="margin-top:1em;"><a href="{{ url_for('logout') }}">Back to Login</a></p>
