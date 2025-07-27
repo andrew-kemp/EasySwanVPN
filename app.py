@@ -3,7 +3,7 @@ from flask_login import LoginManager, UserMixin, login_user, login_required, log
 from flask_pam import PAM
 
 app = Flask(__name__)
-app.secret_key = 'change_this_secret_key'
+app.secret_key = 'change_this_secret_key'  # Change this to a strong random value for production!
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -59,5 +59,5 @@ LOGIN_FORM = '''
 '''
 
 if __name__ == "__main__":
-    context = ("/etc/ssl/certs/portal.easyswan.net.crt", "/etc/ssl/private/portal.easyswan.net.key")
-    app.run(host="0.0.0.0", port=443, ssl_context=context)
+    # Do NOT use SSL context here. Nginx will handle HTTPS and proxy to this app.
+    app.run(host="127.0.0.1", port=5000)
