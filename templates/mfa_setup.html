@@ -6,16 +6,17 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h2>Set up Multi-Factor Authentication</h2>
-    {% if error %}
-        <p style="color:red">{{ error }}</p>
-    {% endif %}
-    <p>Scan this QR code with your authenticator app (e.g., Google Authenticator):</p>
-    <img src="data:image/png;base64,{{ qr_b64 }}" alt="QR Code"><br>
-    <p>Or enter this secret manually: <b>{{ secret }}</b></p>
-    <form method="POST">
-        <label>Enter OTP from app: <input name="mfa_code" type="text"></label><br>
-        <button type="submit">Verify</button>
-    </form>
+    <div class="center-container">
+        <h2>MFA Setup</h2>
+        <div class="form-card">
+            <p>Scan this QR code with your authenticator app:</p>
+            <img src="data:image/png;base64,{{ qr_code }}" alt="MFA QR Code">
+            <form method="POST">
+                <label for="token">Enter code from app:</label>
+                <input id="token" name="token" type="text" required>
+                <button type="submit">Verify</button>
+            </form>
+        </div>
+    </div>
 </body>
 </html>
