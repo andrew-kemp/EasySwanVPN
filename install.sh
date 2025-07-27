@@ -1,8 +1,12 @@
 #!/bin/bash
 set -e
 
-BASE_DIR="$HOME/easyswanvpn"
+BASE_DIR="/home/andyk/easyswanvpn"
 REPO_URL="https://github.com/andrew-kemp/EasySwanVPN.git"
+SERVICE_NAME="easyswanvpn"
+SYSTEMD_SERVICE_PATH="/etc/systemd/system/${SERVICE_NAME}.service"
+USER_NAME="andyk"
+USER_HOME="/home/${USER_NAME}"
 
 echo "[+] Checking for existing EasySwanVPN installation..."
 
@@ -40,37 +44,41 @@ pip install -r requirements.txt
 echo "[+] Python environment ready and Flask installed."
 echo "[+] strongSwan, EasyRSA, and OpenSSL are installed."
 
-# --- Systemd user service block ---
-echo "[+] Creating systemd user service for EasySwanVPN..."
+# --- Systemd system service block ---
+echo "[+] Creating system-wide systemd service for EasySwanVPN..."
 
-SERVICE_DIR="$HOME/.config/systemd/user"
-SERVICE_FILE="$SERVICE_DIR/easyswanvpn.service"
-
-mkdir -p "$SERVICE_DIR"
-
-cat > "$SERVICE_FILE" <<EOF
+cat > /tmp/${SERVICE_NAME}.service <<EOF
 [Unit]
 Description=EasySwanVPN Flask web app
 After=network.target
 
 [Service]
-User=$USER
-WorkingDirectory=$HOME/easyswanvpn
-Environment="PATH=$HOME/easyswanvpn/venv/bin"
-ExecStart=$HOME/easyswanvpn/venv/bin/python $HOME/easyswanvpn/run.py
+Type=simple
+User=${USER_NAME}
+WorkingDirectory=${USER_HOME}/easyswanvpn
+Environment="PATH=${USER_HOME}/easyswanvpn/venv/bin"
+ExecStart=${USER_HOME}/easyswanvpn/venv/bin/python ${USER_HOME}/easyswanvpn/run.py
 Restart=always
 
 [Install]
-WantedBy=default.target
+WantedBy=multi-user.target
 EOF
 
-echo "[+] Created user systemd service: $SERVICE_FILE"
-echo "[*] To enable and start your service, run:"
-echo "    systemctl --user daemon-reload"
-echo "    systemctl --user enable easyswanvpn"
-echo "    systemctl --user start easyswanvpn"
-echo "[*] To check status or logs:"
-echo "    systemctl --user status easyswanvpn"
-echo "    journalctl --user -u easyswanvpn -f"
+sudo mv /tmp/${SERVICE_NAME}.service ${SYSTEMD_SERVICE_PATH}
+sudo chown root:root ${SYSTEMD_SERVICE_PATH}
+sudo chmod 644 ${SYSTEMD_SERVICE_PATH}
+
+echo "[+] Reloading systemd manager configuration..."
+sudo systemctl daemon-reload
+
+echo "[+] Enabling EasySwanVPN service to start at boot..."
+sudo systemctl enable ${SERVICE_NAME}
+
+echo "[+] Starting EasySwanVPN service now..."
+sudo systemctl restart ${SERVICE_NAME}
+
+echo "[*] To check service status or logs, use:"
+echo "    sudo systemctl status ${SERVICE_NAME}"
+echo "    sudo journalctl -u ${SERVICE_NAME} -f"
 
 echo "[!] Setup completed successfully."
