@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
 
-USER_NAME="andyk"
-USER_HOME="/home/${USER_NAME}"
+# Username-agnostic paths
+USER_HOME="$HOME"
 BASE_DIR="${USER_HOME}/easyswanvpn"
 REPO_URL="https://github.com/andrew-kemp/EasySwanVPN.git"
 SERVICE_NAME="easyswanvpn"
@@ -10,6 +10,7 @@ SYSTEMD_SERVICE_PATH="/etc/systemd/system/${SERVICE_NAME}.service"
 SSL_CERT="/etc/ssl/certs/portal.easyswan.net.crt"
 SSL_KEY="/etc/ssl/private/portal.easyswan.net.key"
 NGINX_CONF="/etc/nginx/sites-available/portal.easyswan.net"
+NGINX_CONF_LINK="/etc/nginx/sites-enabled/portal.easyswan.net"
 
 echo "[+] Checking for existing EasySwanVPN installation..."
 
@@ -32,13 +33,19 @@ sudo apt-get update
 sudo apt-get install -y python3 python3-venv python3-pip strongswan easy-rsa openssl libpam0g-dev nginx
 
 echo "[+] Setting up Python virtual environment..."
+cd "$BASE_DIR"
 python3 -m venv venv
 source venv/bin/activate
 
-if ! grep -q Flask requirements.txt; then
+# Ensure requirements.txt exists and required packages are present
+touch requirements.txt
+if ! grep -q "^Flask" requirements.txt; then
   echo "Flask>=2.2" >> requirements.txt
 fi
-if ! grep -q flask-pam requirements.txt; then
+if ! grep -q "^flask-login" requirements.txt; then
+  echo "flask-login" >> requirements.txt
+fi
+if ! grep -q "^flask-pam" requirements.txt; then
   echo "flask-pam" >> requirements.txt
 fi
 
@@ -46,7 +53,7 @@ echo "[+] Installing Python dependencies..."
 pip install --upgrade pip
 pip install -r requirements.txt
 
-echo "[+] Python environment ready and Flask + PAM installed."
+echo "[+] Python environment ready and dependencies installed."
 
 echo "[+] Creating self-signed SSL certificate for portal.easyswan.net..."
 sudo mkdir -p /etc/ssl/private /etc/ssl/certs
@@ -80,10 +87,10 @@ server {
 }
 EOF
 
-sudo ln -sf $NGINX_CONF /etc/nginx/sites-enabled/portal.easyswan.net
+sudo ln -sf $NGINX_CONF $NGINX_CONF_LINK
 sudo nginx -t && sudo systemctl reload nginx
 
-echo "[+] Creating system-wide systemd service for EasySwanVPN..."
+echo "[+] Creating user-agnostic systemd service for EasySwanVPN..."
 
 cat > /tmp/${SERVICE_NAME}.service <<EOF
 [Unit]
@@ -92,10 +99,10 @@ After=network.target
 
 [Service]
 Type=simple
-User=${USER_NAME}
-WorkingDirectory=${USER_HOME}/easyswanvpn
-Environment="PATH=${USER_HOME}/easyswanvpn/venv/bin"
-ExecStart=${USER_HOME}/easyswanvpn/venv/bin/python ${USER_HOME}/easyswanvpn/app.py
+User=$USER
+WorkingDirectory=$BASE_DIR
+Environment="PATH=$BASE_DIR/venv/bin"
+ExecStart=$BASE_DIR/venv/bin/python $BASE_DIR/app.py
 Restart=always
 
 [Install]
