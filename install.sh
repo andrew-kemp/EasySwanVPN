@@ -39,4 +39,38 @@ pip install -r requirements.txt
 
 echo "[+] Python environment ready and Flask installed."
 echo "[+] strongSwan, EasyRSA, and OpenSSL are installed."
+
+# --- Systemd user service block ---
+echo "[+] Creating systemd user service for EasySwanVPN..."
+
+SERVICE_DIR="$HOME/.config/systemd/user"
+SERVICE_FILE="$SERVICE_DIR/easyswanvpn.service"
+
+mkdir -p "$SERVICE_DIR"
+
+cat > "$SERVICE_FILE" <<EOF
+[Unit]
+Description=EasySwanVPN Flask web app
+After=network.target
+
+[Service]
+User=$USER
+WorkingDirectory=$HOME/easyswanvpn
+Environment="PATH=$HOME/easyswanvpn/venv/bin"
+ExecStart=$HOME/easyswanvpn/venv/bin/python $HOME/easyswanvpn/run.py
+Restart=always
+
+[Install]
+WantedBy=default.target
+EOF
+
+echo "[+] Created user systemd service: $SERVICE_FILE"
+echo "[*] To enable and start your service, run:"
+echo "    systemctl --user daemon-reload"
+echo "    systemctl --user enable easyswanvpn"
+echo "    systemctl --user start easyswanvpn"
+echo "[*] To check status or logs:"
+echo "    systemctl --user status easyswanvpn"
+echo "    journalctl --user -u easyswanvpn -f"
+
 echo "[!] Setup completed successfully."
