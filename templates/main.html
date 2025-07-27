@@ -2,11 +2,18 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Main</title>
+    <title>Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h2>Welcome, {{ username }}</h2>
-    <a href="{{ url_for('logout') }}">Logout</a>
+    <div class="center-container">
+        <h2>Welcome, {{ username }}</h2>
+        <div class="form-card">
+            <p>You are logged in.</p>
+            <form method="POST" action="{{ url_for('logout') }}">
+                <button type="submit">Logout</button>
+            </form>
+        </div>
+    </div>
 </body>
 </html>
