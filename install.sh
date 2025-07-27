@@ -1,7 +1,6 @@
 #!/bin/bash
 set -e
 
-# ===== User Variables and Paths =====
 USER_HOME="$HOME"
 BASE_DIR="${USER_HOME}/easyswanvpn"
 REPO_URL="https://github.com/andrew-kemp/EasySwanVPN.git"
@@ -12,9 +11,8 @@ SSL_KEY="/etc/ssl/private/portal.easyswan.net.key"
 NGINX_CONF="/etc/nginx/sites-available/portal.easyswan.net"
 NGINX_CONF_LINK="/etc/nginx/sites-enabled/portal.easyswan.net"
 
-PYTHON_VERSION="python3"  # Use system Python (e.g., Python 3.12+ on Ubuntu 24.04)
+PYTHON_VERSION="python3"
 
-# ===== Clone or Update Repo =====
 echo "[+] Checking for EasySwanVPN repository..."
 
 if [ -d "$BASE_DIR/.git" ]; then
@@ -31,18 +29,15 @@ else
   cd "$BASE_DIR"
 fi
 
-# ===== Install System Dependencies =====
 echo "[+] Installing required system packages..."
 sudo apt-get update
 sudo apt-get install -y $PYTHON_VERSION $PYTHON_VERSION-venv python3-pip strongswan easy-rsa openssl libpam0g-dev nginx
 
-# ===== Python Virtual Environment and Dependencies =====
 echo "[+] Setting up Python virtual environment..."
 cd "$BASE_DIR"
 $PYTHON_VERSION -m venv venv
 source venv/bin/activate
 
-# ===== Write requirements.txt for this project =====
 cat > requirements.txt <<EOF
 Flask
 flask-login
@@ -57,9 +52,18 @@ echo "[+] Installing Python dependencies from requirements.txt..."
 pip install --upgrade pip
 pip install -r requirements.txt
 
+# ===== Patch app.py to use pam, NOT flask_pam =====
+if grep -q "from flask_pam import PAM" app.py; then
+  echo "[+] Removing 'from flask_pam import PAM' from app.py"
+  sed -i '/from flask_pam import PAM/d' app.py
+fi
+if ! grep -q "^import pam" app.py; then
+  sed -i '1aimport pam' app.py
+  echo "[+] Added 'import pam' at the top of app.py"
+fi
+
 echo "[+] Python environment ready and dependencies installed."
 
-# ===== SSL Certificate for Nginx =====
 echo "[+] Creating self-signed SSL certificate for portal.easyswan.net if needed..."
 sudo mkdir -p /etc/ssl/private /etc/ssl/certs
 if [ ! -f "$SSL_KEY" ] || [ ! -f "$SSL_CERT" ]; then
@@ -74,7 +78,6 @@ else
   echo "[~] Certificate and key already exist, skipping creation."
 fi
 
-# ===== Nginx Config =====
 echo "[+] Creating Nginx config for portal.easyswan.net..."
 sudo tee "$NGINX_CONF" > /dev/null <<EOF
 server {
@@ -96,7 +99,6 @@ EOF
 sudo ln -sf "$NGINX_CONF" "$NGINX_CONF_LINK"
 sudo nginx -t && sudo systemctl reload nginx
 
-# ===== Systemd Service =====
 echo "[+] Creating user-agnostic systemd service for EasySwanVPN..."
 
 cat > /tmp/${SERVICE_NAME}.service <<EOF
