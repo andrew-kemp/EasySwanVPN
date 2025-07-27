@@ -1,40 +1,39 @@
 #!/bin/bash
-
 set -e
 
-# 1. Create project folder structure
 BASE_DIR="$HOME/easyswanvpn"
-mkdir -p "$BASE_DIR"
-mkdir -p "$BASE_DIR/app/templates"
-mkdir -p "$BASE_DIR/static"
+REPO_URL="https://github.com/andrew-kemp/EasySwanVPN.git"
 
-touch "$BASE_DIR/app/__init__.py"
-touch "$BASE_DIR/app/routes.py"
-touch "$BASE_DIR/app/certgen.py"
-touch "$BASE_DIR/app/templates/index.html"
-touch "$BASE_DIR/requirements.txt"
-touch "$BASE_DIR/run.py"
-touch "$BASE_DIR/README.md"
+echo "[+] Checking for existing EasySwanVPN installation..."
 
-echo "[+] EasySwanVPN folder structure created at $BASE_DIR"
+if [ -d "$BASE_DIR/.git" ]; then
+  echo "[+] EasySwanVPN already cloned at $BASE_DIR. Pulling latest changes..."
+  cd "$BASE_DIR"
+  git pull
+else
+  if [ -d "$BASE_DIR" ]; then
+    echo "[!] Directory $BASE_DIR exists but is not a git repo. Removing it for a fresh clone."
+    rm -rf "$BASE_DIR"
+  fi
+  echo "[+] Cloning EasySwanVPN repo to $BASE_DIR"
+  git clone "$REPO_URL" "$BASE_DIR"
+  cd "$BASE_DIR"
+fi
 
-
-# 2. Install system packages (Python, strongSwan, EasyRSA, OpenSSL)
 echo "[+] Installing required system packages..."
 sudo apt-get update
 sudo apt-get install -y python3 python3-venv python3-pip strongswan easy-rsa openssl
 
-# 3. Set up Python virtual environment
-cd "$BASE_DIR"
+echo "[+] Setting up Python virtual environment..."
 python3 -m venv venv
 source venv/bin/activate
 
-# 4. Create requirements.txt if missing
+# Ensure Flask is in requirements.txt
 if ! grep -q Flask requirements.txt; then
   echo "Flask>=2.2" >> requirements.txt
 fi
 
-# 5. Install Python dependencies
+echo "[+] Installing Python dependencies..."
 pip install --upgrade pip
 pip install -r requirements.txt
 
