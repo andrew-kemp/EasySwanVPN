@@ -9,6 +9,7 @@ SERVICE_NAME="easyswanvpn"
 SYSTEMD_SERVICE_PATH="/etc/systemd/system/${SERVICE_NAME}.service"
 SSL_CERT="/etc/ssl/certs/portal.easyswan.net.crt"
 SSL_KEY="/etc/ssl/private/portal.easyswan.net.key"
+NGINX_CONF="/etc/nginx/sites-available/portal.easyswan.net"
 
 echo "[+] Checking for existing EasySwanVPN installation..."
 
@@ -28,13 +29,12 @@ fi
 
 echo "[+] Installing required system packages..."
 sudo apt-get update
-sudo apt-get install -y python3 python3-venv python3-pip strongswan easy-rsa openssl libpam0g-dev
+sudo apt-get install -y python3 python3-venv python3-pip strongswan easy-rsa openssl libpam0g-dev nginx
 
 echo "[+] Setting up Python virtual environment..."
 python3 -m venv venv
 source venv/bin/activate
 
-# Ensure Flask and flask-pam are in requirements.txt
 if ! grep -q Flask requirements.txt; then
   echo "Flask>=2.2" >> requirements.txt
 fi
@@ -48,12 +48,8 @@ pip install -r requirements.txt
 
 echo "[+] Python environment ready and Flask + PAM installed."
 
-# --- SSL certificate creation ---
 echo "[+] Creating self-signed SSL certificate for portal.easyswan.net..."
-
 sudo mkdir -p /etc/ssl/private /etc/ssl/certs
-
-# Only generate if not already present
 if [ ! -f "$SSL_KEY" ] || [ ! -f "$SSL_CERT" ]; then
   sudo openssl req -x509 -nodes -days 365 -newkey rsa:4096 \
     -keyout "$SSL_KEY" \
@@ -66,7 +62,27 @@ else
   echo "[~] Certificate and key already exist, skipping creation."
 fi
 
-# --- Systemd system service block ---
+echo "[+] Creating Nginx config for portal.easyswan.net..."
+sudo tee $NGINX_CONF > /dev/null <<EOF
+server {
+    listen 443 ssl;
+    server_name portal.easyswan.net;
+
+    ssl_certificate     $SSL_CERT;
+    ssl_certificate_key $SSL_KEY;
+
+    location / {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    }
+}
+EOF
+
+sudo ln -sf $NGINX_CONF /etc/nginx/sites-enabled/portal.easyswan.net
+sudo nginx -t && sudo systemctl reload nginx
+
 echo "[+] Creating system-wide systemd service for EasySwanVPN..."
 
 cat > /tmp/${SERVICE_NAME}.service <<EOF
@@ -102,5 +118,4 @@ sudo systemctl restart ${SERVICE_NAME}
 echo "[*] To check service status or logs, use:"
 echo "    sudo systemctl status ${SERVICE_NAME}"
 echo "    sudo journalctl -u ${SERVICE_NAME} -f"
-
 echo "[!] Setup completed successfully."
