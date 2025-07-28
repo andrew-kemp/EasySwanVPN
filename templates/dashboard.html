@@ -2,37 +2,41 @@
 <html>
 <head>
     <title>CA Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h1>Certificate Authority Dashboard</h1>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <p>Welcome, {{ username }}</p>
-    <form action="{{ url_for('select_ca') }}" method="post">
-        <label>Select Active CA: </label>
-        <select name="ca_name">
-            {% for ca in cas %}
-                <option value="{{ ca }}" {% if ca==active_ca %}selected{% endif %}>{{ ca }}</option>
-            {% endfor %}
-        </select>
-        <button type="submit">Select</button>
-    </form>
-    <ul>
-        <li><a href="{{ url_for('import_ca') }}">Import Root CA</a></li>
-        <li><a href="{{ url_for('generate_ca') }}">Generate New Root CA</a></li>
-        <li><a href="{{ url_for('generate_cert') }}">Generate Server/Client Cert/Key</a></li>
-        <li><a href="{{ url_for('logout') }}">Logout</a></li>
-    </ul>
-    {% if active_ca %}
-        <p>Active CA: <b>{{ active_ca }}</b></p>
-    {% endif %}
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
+    <div class="center-container">
+      <div class="form-card">
+        <h2>Certificate Authority Dashboard</h2>
+        <p>Welcome, {{ username }}</p>
+        <form action="{{ url_for('select_ca') }}" method="post">
+            <label>Select Active CA: </label>
+            <select name="ca_name">
+                {% for ca in cas %}
+                    <option value="{{ ca }}" {% if ca==active_ca %}selected{% endif %}>{{ ca }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit">Select</button>
+        </form>
         <ul>
-        {% for msg in messages %}
-          <li style="color:green;">{{ msg }}</li>
-        {% endfor %}
+            <li><a href="{{ url_for('import_ca') }}">Import Root CA</a></li>
+            <li><a href="{{ url_for('generate_ca') }}">Generate New Root CA</a></li>
+            <li><a href="{{ url_for('generate_cert') }}">Generate Server/Client Cert/Key</a></li>
+            <li><a href="{{ url_for('logout') }}">Logout</a></li>
         </ul>
-      {% endif %}
-    {% endwith %}
+        {% if active_ca %}
+            <p>Active CA: <b>{{ active_ca }}</b></p>
+        {% endif %}
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <ul>
+            {% for msg in messages %}
+              <li style="color:green;">{{ msg }}</li>
+            {% endfor %}
+            </ul>
+          {% endif %}
+        {% endwith %}
+      </div>
+    </div>
 </body>
 </html>
