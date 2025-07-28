@@ -5,15 +5,19 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h1>Multi-Factor Authentication</h1>
-    {% if error %}
-      <p style="color:red;">{{ error }}</p>
-    {% endif %}
-    <form method="POST">
-        <label for="mfa_code">Enter code from your authenticator app:</label>
-        <input id="mfa_code" name="mfa_code" type="text" required>
-        <button type="submit">Verify</button>
-    </form>
-    <p><a href="{{ url_for('logout') }}">Back to Login</a></p>
+    <div class="center-container">
+      <div class="form-card">
+        <h2>Multi-Factor Authentication</h2>
+        {% if error %}
+          <p style="color:red;">{{ error }}</p>
+        {% endif %}
+        <form method="POST">
+            <label for="mfa_code">Enter code from your authenticator app:</label>
+            <input id="mfa_code" name="mfa_code" type="text" required>
+            <button type="submit">Verify</button>
+        </form>
+        <p><a href="{{ url_for('logout') }}">Back to Login</a></p>
+      </div>
+    </div>
 </body>
 </html>
