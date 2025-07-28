@@ -10,6 +10,7 @@
         <h2>Welcome, {{ username }}</h2>
         <div class="form-card">
             <p>You are logged in.</p>
+            <a href="{{ url_for('generate') }}"><button type="button">Create Certificate/Config</button></a>
             <form method="POST" action="{{ url_for('logout') }}">
                 <button type="submit">Logout</button>
             </form>
