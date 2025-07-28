@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Generate Certificate/Config</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="center-container">
+        <h2>Generate Certificate/Config</h2>
+        <div class="form-card">
+            <form method="POST">
+                <label for="common_name">Common Name:</label>
+                <input id="common_name" name="common_name" type="text" required>
+                <button type="submit">Generate</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
