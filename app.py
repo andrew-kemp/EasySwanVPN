@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, session, redirect, url_for, jsonify, send_file
+from flask import Flask, render_template, request, session, redirect, url_for, send_file, flash
 import os
 import json
 import pyotp
@@ -7,7 +7,6 @@ import io
 import base64
 import subprocess
 import pam
-import requests
 import tempfile
 import shutil
 
@@ -15,7 +14,10 @@ app = Flask(__name__)
 app.secret_key = os.urandom(32)
 
 USER_FILE = "users.json"
-SYSTEM_USERNAME = "andyk"  # Use your system username
+SYSTEM_USERNAME = "andyk"
+
+CA_DIR = "cas"
+os.makedirs(CA_DIR, exist_ok=True)
 
 def load_users():
     if not os.path.exists(USER_FILE):
@@ -38,102 +40,31 @@ def authenticate_linux(username, password):
 def check_auth():
     return session.get("logged_in")
 
-def get_public_ip():
-    try:
-        return requests.get('https://api.ipify.org', timeout=3).text
-    except Exception:
-        return "N/A"
+def list_cas():
+    return [d for d in os.listdir(CA_DIR) if os.path.isdir(os.path.join(CA_DIR, d))]
 
-def get_vpn_status():
-    try:
-        import psutil
-        return "tun0" in psutil.net_if_addrs()
-    except Exception:
-        try:
-            output = subprocess.check_output("ip addr show tun0", shell=True, text=True)
-            return "state UP" in output or "tun0" in output
-        except Exception:
-            return False
+def get_active_ca():
+    ca = session.get("active_ca")
+    if ca and ca in list_cas():
+        return ca
+    cas = list_cas()
+    if cas:
+        session["active_ca"] = cas[0]
+        return cas[0]
+    return None
 
-def get_tunnel_ip():
-    try:
-        output = subprocess.check_output("ip -4 addr show tun0", shell=True, text=True)
-        for line in output.splitlines():
-            line = line.strip()
-            if line.startswith("inet "):
-                return line.split()[1].split("/")[0]
-        return "N/A"
-    except Exception:
-        return "N/A"
-
-def get_remote_gateway_ip():
-    # This is the "via" address in default route (the router)
-    try:
-        output = subprocess.check_output("ip route show default", shell=True, text=True)
-        for line in output.splitlines():
-            parts = line.strip().split()
-            if "default" in parts:
-                return parts[2]
-        return "N/A"
-    except Exception:
-        return "N/A"
-
-def get_wan_ip():
-    # WAN IP: IP of the interface used for default route, NOT tun0, NOT lo
-    try:
-        output = subprocess.check_output("ip route show default", shell=True, text=True)
-        iface = None
-        for line in output.splitlines():
-            parts = line.strip().split()
-            if "default" in parts and "dev" in parts:
-                dev_index = parts.index("dev")
-                iface = parts[dev_index + 1]
-                break
-        if iface and not iface.startswith("lo") and not iface.startswith("tun"):
-            ip_output = subprocess.check_output(f"ip -4 addr show {iface}", shell=True, text=True)
-            for line in ip_output.splitlines():
-                line = line.strip()
-                if line.startswith("inet "):
-                    return line.split()[1].split("/")[0]
-        return "N/A"
-    except Exception:
-        return "N/A"
-
-def get_lan_ip(interface_name="enxc8a362ba3ec9"):
-    # LAN IP: always from the specified LAN interface
-    try:
-        output = subprocess.check_output(f"ip -4 addr show {interface_name}", shell=True, text=True)
-        for line in output.splitlines():
-            line = line.strip()
-            if line.startswith("inet "):
-                return line.split()[1].split("/")[0]
-        return "N/A"
-    except Exception:
-        return "N/A"
-
-@app.route("/", methods=["GET", "POST"])
+@app.route("/", methods=["GET"])
 def index():
     if not check_auth():
         return redirect(url_for("login"))
-    return render_template("main.html", username=SYSTEM_USERNAME)
-
-@app.route("/main")
-def main():
-    if not check_auth():
-        return redirect(url_for("login"))
-    return render_template("main.html", username=SYSTEM_USERNAME)
-
-@app.route("/protected")
-def protected():
-    if not check_auth():
-        return redirect(url_for("login"))
-    return render_template("protected.html", username=SYSTEM_USERNAME)
+    cas = list_cas()
+    active_ca = get_active_ca()
+    return render_template("dashboard.html", cas=cas, active_ca=active_ca, username=SYSTEM_USERNAME)
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
     error = ""
     user = get_user()
-
     if request.method == "POST":
         username = request.form.get("username")
         password = request.form.get("password")
@@ -155,8 +86,12 @@ def login():
             else:
                 session["username"] = username
                 return redirect(url_for("mfa"))
-
     return render_template("login.html", error=error)
+
+@app.route("/logout", methods=["GET", "POST"])
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
 
 @app.route("/mfa_setup", methods=["GET", "POST"])
 def mfa_setup():
@@ -165,18 +100,15 @@ def mfa_setup():
     error = ""
     if not user:
         return redirect(url_for("login"))
-
     secret = user["totp_secret"]
     provisioning_uri = pyotp.totp.TOTP(secret).provisioning_uri(
-        name=f"{SYSTEM_USERNAME}@easyswanvpn", issuer_name="EasySwanVPN"
+        name=f"{SYSTEM_USERNAME}@CAAdmin", issuer_name="CAAdmin"
     )
-
     img = qrcode.make(provisioning_uri)
     buf = io.BytesIO()
     img.save(buf, format='PNG')
     buf.seek(0)
     qr_b64 = base64.b64encode(buf.read()).decode('ascii')
-
     if request.method == "POST":
         otp = request.form.get("mfa_code")
         totp = pyotp.TOTP(secret)
@@ -187,13 +119,7 @@ def mfa_setup():
             return redirect(url_for("index"))
         else:
             error = "Invalid OTP code. Please try again."
-
-    return render_template(
-        "mfa_setup.html",
-        error=error,
-        qr_b64=qr_b64,
-        secret=secret
-    )
+    return render_template("mfa_setup.html", error=error, qr_b64=qr_b64, secret=secret)
 
 @app.route("/mfa", methods=["GET", "POST"])
 def mfa():
@@ -202,7 +128,6 @@ def mfa():
     error = ""
     if not user or not user.get("mfa_enabled"):
         return redirect(url_for("login"))
-
     if request.method == "POST":
         otp = request.form.get("mfa_code")
         totp = pyotp.TOTP(user["totp_secret"])
@@ -211,141 +136,99 @@ def mfa():
             return redirect(url_for("index"))
         else:
             error = "Invalid OTP code. Please try again."
-
     return render_template("mfa.html", error=error)
 
-@app.route("/logout", methods=["GET", "POST"])
-def logout():
-    session.clear()
-    return redirect(url_for("login"))
+@app.route("/select_ca", methods=["POST"])
+def select_ca():
+    ca_name = request.form.get("ca_name")
+    if ca_name and ca_name in list_cas():
+        session["active_ca"] = ca_name
+    return redirect(url_for("index"))
 
-@app.route("/generate", methods=["GET", "POST"])
-def generate():
+@app.route("/import_ca", methods=["GET", "POST"])
+def import_ca():
     if not check_auth():
         return redirect(url_for("login"))
-
-    error = ""
     if request.method == "POST":
-        common_name = request.form.get("common_name", "client")
+        ca_name = request.form.get("ca_name")
+        ca_cert = request.files.get("ca_cert")
+        ca_key = request.files.get("ca_key")
+        if not ca_name or not ca_cert or not ca_key:
+            flash("All fields are required!")
+            return redirect(url_for("import_ca"))
+        ca_path = os.path.join(CA_DIR, ca_name)
+        if not os.path.exists(ca_path):
+            os.makedirs(ca_path)
+        ca_cert.save(os.path.join(ca_path, "ca.crt"))
+        ca_key.save(os.path.join(ca_path, "ca.key"))
+        session["active_ca"] = ca_name
+        flash("CA imported successfully.")
+        return redirect(url_for("index"))
+    return render_template("import_ca.html")
+
+@app.route("/generate_ca", methods=["GET", "POST"])
+def generate_ca():
+    if not check_auth():
+        return redirect(url_for("login"))
+    if request.method == "POST":
+        ca_name = request.form.get("ca_name")
+        subj = request.form.get("subject", "/CN=MyCA")
+        days = request.form.get("days", "3650")
+        if not ca_name:
+            flash("CA name is required!")
+            return redirect(url_for("generate_ca"))
+        ca_path = os.path.join(CA_DIR, ca_name)
+        if not os.path.exists(ca_path):
+            os.makedirs(ca_path)
+        ca_key = os.path.join(ca_path, "ca.key")
+        ca_crt = os.path.join(ca_path, "ca.crt")
+        subprocess.run(["openssl", "genrsa", "-out", ca_key, "4096"], check=True)
+        subprocess.run([
+            "openssl", "req", "-x509", "-new", "-nodes",
+            "-key", ca_key, "-sha256", "-days", days,
+            "-out", ca_crt, "-subj", subj
+        ], check=True)
+        session["active_ca"] = ca_name
+        flash("CA generated successfully.")
+        return redirect(url_for("index"))
+    return render_template("generate_ca.html")
+
+@app.route("/generate_cert", methods=["GET", "POST"])
+def generate_cert():
+    if not check_auth():
+        return redirect(url_for("login"))
+    active_ca = get_active_ca()
+    error = ""
+    if not active_ca:
+        error = "No CA available. Please import or generate a CA first."
+        return render_template("generate_cert.html", error=error, active_ca=active_ca)
+    if request.method == "POST":
+        cert_type = request.form.get("cert_type", "server")
+        common_name = request.form.get("common_name", "myhost")
+        ca_path = os.path.join(CA_DIR, active_ca)
+        ca_key = os.path.join(ca_path, "ca.key")
+        ca_crt = os.path.join(ca_path, "ca.crt")
         try:
             with tempfile.TemporaryDirectory() as tmpdir:
-                key_path = os.path.join(tmpdir, "client.key")
-                crt_path = os.path.join(tmpdir, "client.crt")
-                config_path = os.path.join(tmpdir, "client.conf")
-
-                # Generate private key
+                key_path = os.path.join(tmpdir, f"{cert_type}.key")
+                csr_path = os.path.join(tmpdir, f"{cert_type}.csr")
+                crt_path = os.path.join(tmpdir, f"{cert_type}.crt")
                 subprocess.run(["openssl", "genrsa", "-out", key_path, "2048"], check=True)
-                # Generate self-signed certificate
                 subprocess.run([
-                    "openssl", "req", "-new", "-x509", "-key", key_path, "-out", crt_path,
-                    "-days", "365", "-subj", f"/CN={common_name}"
+                    "openssl", "req", "-new", "-key", key_path, "-out", csr_path,
+                    "-subj", f"/CN={common_name}"
                 ], check=True)
-                # Write a simple config as example
-                with open(config_path, "w") as f:
-                    f.write(f"client\ncert = client.crt\nkey = client.key\n")
-
-                # Zip files for download
-                zip_base = os.path.join(tmpdir, "client_bundle")
+                subprocess.run([
+                    "openssl", "x509", "-req", "-in", csr_path, "-CA", ca_crt, "-CAkey", ca_key, "-CAcreateserial",
+                    "-out", crt_path, "-days", "365", "-sha256"
+                ], check=True)
+                zip_base = os.path.join(tmpdir, f"{cert_type}_bundle")
                 shutil.make_archive(zip_base, 'zip', tmpdir)
                 zip_path = zip_base + ".zip"
-
-                return send_file(zip_path, as_attachment=True, download_name="client_bundle.zip")
+                return send_file(zip_path, as_attachment=True, download_name=f"{cert_type}_bundle.zip")
         except Exception as e:
             error = f"Error generating certificate: {e}"
-    return render_template("generate.html", error=error)
-
-@app.route("/api/networks")
-def api_networks():
-    if not check_auth():
-        return jsonify({"status": "error", "message": "Unauthorized"}), 403
-    try:
-        output = subprocess.check_output(
-            ["nmcli", "-t", "-f", "SSID,SIGNAL", "device", "wifi", "list"],
-            text=True
-        )
-        networks = []
-        for line in output.strip().split("\n"):
-            if line:
-                parts = line.split(":")
-                if len(parts) >= 2:
-                    ssid, signal = parts[0], parts[1]
-                    networks.append({"ssid": ssid, "signal": signal})
-        return jsonify(networks)
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
-
-@app.route("/api/connect", methods=["POST"])
-def api_connect():
-    if not check_auth():
-        return jsonify({"status": "error", "message": "Unauthorized"}), 403
-    data = request.get_json(force=True)
-    ssid = data.get("ssid")
-    psk = data.get("psk", "")
-    if not ssid:
-        return jsonify({"status": "error", "message": "SSID required"}), 400
-    try:
-        cmd = ["nmcli", "device", "wifi", "connect", ssid]
-        if psk:
-            cmd += ["password", psk]
-        result = subprocess.run(cmd, capture_output=True, text=True, check=False)
-        if result.returncode == 0:
-            return jsonify({"status": "success"})
-        else:
-            return jsonify({"status": "error", "message": result.stderr.strip() or result.stdout.strip()}), 500
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
-
-@app.route("/api/restart_service", methods=["POST"])
-def restart_service():
-    if not check_auth():
-        return jsonify({"status": "error", "message": "Unauthorized"}), 403
-    try:
-        subprocess.Popen(["sudo", "systemctl", "restart", "openvpn-client@TravelNetVPN"])
-        return jsonify({"status": "success", "message": "Service restarting..."})
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
-
-@app.route("/api/shutdown", methods=["POST"])
-def shutdown():
-    if not check_auth():
-        return jsonify({"status": "error", "message": "Unauthorized"}), 403
-    try:
-        subprocess.Popen(["sudo", "shutdown", "-h", "now"])
-        return jsonify({"status": "success", "message": "Server shutting down..."})
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
-
-@app.route("/api/reboot", methods=["POST"])
-def reboot():
-    if not check_auth():
-        return jsonify({"status": "error", "message": "Unauthorized"}), 403
-    try:
-        subprocess.Popen(["sudo", "reboot"])
-        return jsonify({"status": "success", "message": "Server rebooting..."})
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
-
-@app.route("/api/status")
-def api_status():
-    if not check_auth():
-        return jsonify({"status": "error", "message": "Unauthorized"}), 403
-
-    public_ip = get_public_ip()
-    wan_ip = get_wan_ip()
-    lan_ip = get_lan_ip("enxc8a362ba3ec9")  # LAN IP as requested
-    tunnel_ip = get_tunnel_ip()
-    remote_gateway_ip = get_remote_gateway_ip()
-    vpn_connected = get_vpn_status()
-
-    return jsonify({
-        "status": "success",
-        "vpn_connected": vpn_connected,
-        "public_ip": public_ip,
-        "wan_ip": wan_ip,
-        "lan_ip": lan_ip,
-        "tunnel_ip": tunnel_ip,
-        "remote_gateway_ip": remote_gateway_ip
-    })
+    return render_template("generate_cert.html", error=error, active_ca=active_ca)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
