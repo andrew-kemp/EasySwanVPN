@@ -5,6 +5,7 @@
 </head>
 <body>
     <h1>Certificate Authority Dashboard</h1>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <p>Welcome, {{ username }}</p>
     <form action="{{ url_for('select_ca') }}" method="post">
         <label>Select Active CA: </label>
