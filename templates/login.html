@@ -5,16 +5,20 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h1>Login</h1>
-    {% if error %}
-      <p style="color:red;">{{ error }}</p>
-    {% endif %}
-    <form method="POST">
+  <div class="center-container">
+    <div class="form-card">
+      <h2>Login</h2>
+      <form method="POST">
         <label for="username">Username:</label>
-        <input name="username" required><br>
+        <input id="username" name="username" type="text" required>
         <label for="password">Password:</label>
-        <input name="password" type="password" required><br>
+        <input id="password" name="password" type="password" required>
         <button type="submit">Login</button>
-    </form>
+      </form>
+      {% if error %}
+        <p style="color:red;">{{ error }}</p>
+      {% endif %}
+    </div>
+  </div>
 </body>
 </html>
