@@ -5,25 +5,29 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h1>Generate New Root CA</h1>
-    <form method="POST">
-        <label>CA Name:</label>
-        <input name="ca_name" required><br>
-        <label>Subject (e.g. /CN=MyCA):</label>
-        <input name="subject" value="/CN=MyCA"><br>
-        <label>Validity (days):</label>
-        <input name="days" value="3650"><br>
-        <button type="submit">Generate</button>
-    </form>
-    <p><a href="{{ url_for('index') }}">Back</a></p>
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        <ul>
-        {% for msg in messages %}
-          <li style="color:red;">{{ msg }}</li>
-        {% endfor %}
-        </ul>
-      {% endif %}
-    {% endwith %}
+    <div class="center-container">
+      <div class="form-card">
+        <h2>Generate New Root CA</h2>
+        <form method="POST">
+            <label for="ca_name">CA Name:</label>
+            <input id="ca_name" name="ca_name" required>
+            <label for="subject">Subject (e.g. /CN=MyCA):</label>
+            <input id="subject" name="subject" value="/CN=MyCA">
+            <label for="days">Validity (days):</label>
+            <input id="days" name="days" value="3650">
+            <button type="submit">Generate</button>
+        </form>
+        <p><a href="{{ url_for('index') }}">Back</a></p>
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <ul>
+            {% for msg in messages %}
+              <li style="color:red;">{{ msg }}</li>
+            {% endfor %}
+            </ul>
+          {% endif %}
+        {% endwith %}
+      </div>
+    </div>
 </body>
 </html>
