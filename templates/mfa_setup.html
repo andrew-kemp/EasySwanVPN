@@ -5,16 +5,20 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h1>MFA Setup</h1>
-    <p>Scan the QR code below with your authenticator app:</p>
-    <img src="data:image/png;base64,{{ qr_b64 }}" alt="MFA QR Code"><br>
-    <form method="POST">
-        <label for="mfa_code">Enter code from app:</label>
-        <input id="mfa_code" name="mfa_code" type="text" required>
-        <button type="submit">Verify</button>
-    </form>
-    {% if error %}
-      <p style="color:red;">{{ error }}</p>
-    {% endif %}
+    <div class="center-container">
+      <div class="form-card">
+        <h2>MFA Setup</h2>
+        <p>Scan the QR code below with your authenticator app:</p>
+        <img src="data:image/png;base64,{{ qr_b64 }}" alt="MFA QR Code"><br>
+        <form method="POST">
+            <label for="mfa_code">Enter code from app:</label>
+            <input id="mfa_code" name="mfa_code" type="text" required>
+            <button type="submit">Verify</button>
+        </form>
+        {% if error %}
+          <p style="color:red;">{{ error }}</p>
+        {% endif %}
+      </div>
+    </div>
 </body>
 </html>
