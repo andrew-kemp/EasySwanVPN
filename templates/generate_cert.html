@@ -5,20 +5,25 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h1>Generate Server/Client Certificate (CA: {{ active_ca }})</h1>
-    {% if error %}
-      <p style="color:red;">{{ error }}</p>
-    {% endif %}
-    <form method="POST">
-        <label>Type:</label>
-        <select name="cert_type">
-            <option value="server">Server</option>
-            <option value="client">Client</option>
-        </select><br>
-        <label>Common Name (CN):</label>
-        <input name="common_name" value="myhost"><br>
-        <button type="submit">Generate Certificate</button>
-    </form>
-    <p><a href="{{ url_for('index') }}">Back</a></p>
+    <div class="center-container">
+      <div class="form-card">
+        <h2>Generate Server/Client Certificate</h2>
+        <p>Active CA: <b>{{ active_ca }}</b></p>
+        {% if error %}
+          <p style="color:red;">{{ error }}</p>
+        {% endif %}
+        <form method="POST">
+            <label for="cert_type">Type:</label>
+            <select id="cert_type" name="cert_type">
+                <option value="server">Server</option>
+                <option value="client">Client</option>
+            </select>
+            <label for="common_name">Common Name (CN):</label>
+            <input id="common_name" name="common_name" value="myhost">
+            <button type="submit">Generate Certificate</button>
+        </form>
+        <p><a href="{{ url_for('index') }}">Back</a></p>
+      </div>
+    </div>
 </body>
 </html>
