@@ -1,29 +1,29 @@
 <!doctype html>
 <html>
 <head>
-    <title>Import Root CA</title>
+    <title>Generate Certificate</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h1>Import Existing Root CA</h1>
-    <form method="POST" enctype="multipart/form-data">
-        <label>CA Name:</label>
-        <input name="ca_name" required><br>
-        <label>CA Certificate (.crt):</label>
-        <input type="file" name="ca_cert" required><br>
-        <label>CA Private Key (.key):</label>
-        <input type="file" name="ca_key" required><br>
-        <button type="submit">Import</button>
-    </form>
-    <p><a href="{{ url_for('index') }}">Back</a></p>
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        <ul>
-        {% for msg in messages %}
-          <li style="color:red;">{{ msg }}</li>
-        {% endfor %}
-        </ul>
-      {% endif %}
-    {% endwith %}
+    <div class="center-container">
+      <div class="form-card">
+        <h2>Generate Server/Client Certificate</h2>
+        <p>Active CA: <b>{{ active_ca }}</b></p>
+        {% if error %}
+          <p style="color:red;">{{ error }}</p>
+        {% endif %}
+        <form method="POST">
+            <label for="cert_type">Type:</label>
+            <select id="cert_type" name="cert_type">
+                <option value="server">Server</option>
+                <option value="client">Client</option>
+            </select>
+            <label for="common_name">Common Name (CN):</label>
+            <input id="common_name" name="common_name" value="myhost">
+            <button type="submit">Generate Certificate</button>
+        </form>
+        <p><a href="{{ url_for('index') }}">Back</a></p>
+      </div>
+    </div>
 </body>
 </html>
