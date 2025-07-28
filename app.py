@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, session, redirect, url_for, jsonify
+from flask import Flask, render_template, request, session, redirect, url_for, jsonify, send_file
 import os
 import json
 import pyotp
@@ -8,6 +8,8 @@ import base64
 import subprocess
 import pam
 import requests
+import tempfile
+import shutil
 
 app = Flask(__name__)
 app.secret_key = os.urandom(32)
@@ -216,6 +218,41 @@ def mfa():
 def logout():
     session.clear()
     return redirect(url_for("login"))
+
+@app.route("/generate", methods=["GET", "POST"])
+def generate():
+    if not check_auth():
+        return redirect(url_for("login"))
+
+    error = ""
+    if request.method == "POST":
+        common_name = request.form.get("common_name", "client")
+        try:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                key_path = os.path.join(tmpdir, "client.key")
+                crt_path = os.path.join(tmpdir, "client.crt")
+                config_path = os.path.join(tmpdir, "client.conf")
+
+                # Generate private key
+                subprocess.run(["openssl", "genrsa", "-out", key_path, "2048"], check=True)
+                # Generate self-signed certificate
+                subprocess.run([
+                    "openssl", "req", "-new", "-x509", "-key", key_path, "-out", crt_path,
+                    "-days", "365", "-subj", f"/CN={common_name}"
+                ], check=True)
+                # Write a simple config as example
+                with open(config_path, "w") as f:
+                    f.write(f"client\ncert = client.crt\nkey = client.key\n")
+
+                # Zip files for download
+                zip_base = os.path.join(tmpdir, "client_bundle")
+                shutil.make_archive(zip_base, 'zip', tmpdir)
+                zip_path = zip_base + ".zip"
+
+                return send_file(zip_path, as_attachment=True, download_name="client_bundle.zip")
+        except Exception as e:
+            error = f"Error generating certificate: {e}"
+    return render_template("generate.html", error=error)
 
 @app.route("/api/networks")
 def api_networks():
