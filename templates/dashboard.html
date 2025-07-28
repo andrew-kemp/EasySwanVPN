@@ -18,12 +18,20 @@
             </select>
             <button type="submit">Select</button>
         </form>
-        <ul>
-            <li><a href="{{ url_for('import_ca') }}">Import Root CA</a></li>
-            <li><a href="{{ url_for('generate_ca') }}">Generate New Root CA</a></li>
-            <li><a href="{{ url_for('generate_cert') }}">Generate Server/Client Cert/Key</a></li>
-            <li><a href="{{ url_for('logout') }}">Logout</a></li>
-        </ul>
+        <div style="display: flex; flex-direction: column; gap: 0.5em; margin: 1em 0;">
+            <form action="{{ url_for('import_ca') }}" method="get">
+                <button type="submit">Import Root CA</button>
+            </form>
+            <form action="{{ url_for('generate_ca') }}" method="get">
+                <button type="submit">Generate New Root CA</button>
+            </form>
+            <form action="{{ url_for('generate_cert') }}" method="get">
+                <button type="submit">Generate Server/Client Cert/Key</button>
+            </form>
+            <form action="{{ url_for('logout') }}" method="post">
+                <button type="submit">Logout</button>
+            </form>
+        </div>
         {% if active_ca %}
             <p>Active CA: <b>{{ active_ca }}</b></p>
         {% endif %}
