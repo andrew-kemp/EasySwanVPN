@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+<head>
+    <title>Generate Root CA</title>
+</head>
+<body>
+    <h1>Generate New Root CA</h1>
+    <form method="POST">
+        <label>CA Name:</label>
+        <input name="ca_name" required><br>
+        <label>Subject (e.g. /CN=MyCA):</label>
+        <input name="subject" value="/CN=MyCA"><br>
+        <label>Validity (days):</label>
+        <input name="days" value="3650"><br>
+        <button type="submit">Generate</button>
+    </form>
+    <p><a href="{{ url_for('index') }}">Back</a></p>
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul>
+        {% for msg in messages %}
+          <li style="color:red;">{{ msg }}</li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+</body>
+</html>
