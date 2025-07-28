@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+<head>
+    <title>Generate Certificate</title>
+</head>
+<body>
+    <h1>Generate Server/Client Certificate (CA: {{ active_ca }})</h1>
+    {% if error %}
+      <p style="color:red;">{{ error }}</p>
+    {% endif %}
+    <form method="POST">
+        <label>Type:</label>
+        <select name="cert_type">
+            <option value="server">Server</option>
+            <option value="client">Client</option>
+        </select><br>
+        <label>Common Name (CN):</label>
+        <input name="common_name" value="myhost"><br>
+        <button type="submit">Generate Certificate</button>
+    </form>
+    <p><a href="{{ url_for('index') }}">Back</a></p>
+</body>
+</html>
